@@ -35,8 +35,14 @@ def main():
                 try:
                     # Wait for the robot to return the execution result.
                     buf = s.recv(1024)
-
                     print(buf.decode('utf-8'))
+                    # wait for command to finish
+                    if line.startswith("chassis move"):
+                        while True:
+                            buf = s.recv(1024)
+                            print(buf.decode('utf-8'))
+                            if buf.decode('utf-8').startswith("OK"):
+                                break
                 except socket.error as e:
                     print("Error receiving :", e)
                     sys.exit(1)
