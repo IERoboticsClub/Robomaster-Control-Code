@@ -5,6 +5,9 @@ User can select starting and ending cells, and then click a button to find the s
 import tkinter as tk
 from queue import Queue
 
+HEIGHT = 20
+WIDTH = 8
+
 def on_cell_click(x, y):
     if grid[x][y]["bg"] == "white":
         grid[x][y].config(bg="blue")
@@ -14,14 +17,12 @@ def on_cell_click(x, y):
 # ask for start and end
 def ask_for_position():
     global selected_x, selected_y
-    selected_x, selected_y = 0, 0
-    while True:
-        try:
-            selected_x = int(input("Enter x coordinate: "))
-            selected_y = int(input("Enter y coordinate: "))
-            break
-        except ValueError:
-            print("Invalid input. Try again.")
+    xy = input("Enter x,y: ")
+    selected_x, selected_y = xy.split(",")
+    selected_x = int(selected_x)
+    selected_y = int(selected_y)
+
+
 
 def set_start():
     global start
@@ -48,7 +49,7 @@ def find_path():
 
     open_set = [(0, start)]
     came_from = {}
-    g_score = {(x, y): float("inf") for x in range(20) for y in range(8)}
+    g_score = {(x, y): float("inf") for x in range(HEIGHT) for y in range(WIDTH)}
     g_score[start] = 0
 
     while open_set:
@@ -69,7 +70,7 @@ def find_path():
 
         for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             neighbor = (current[0] + dx, current[1] + dy)
-            if 0 <= neighbor[0] < 20 and 0 <= neighbor[1] < 8:
+            if 0 <= neighbor[0] < HEIGHT and 0 <= neighbor[1] < WIDTH:
                 if grid[neighbor[0]][neighbor[1]]["bg"] == "blue":
                     continue
 
@@ -80,6 +81,38 @@ def find_path():
                     f_score = tentative_g_score + heuristic(neighbor, end)
                     heapq.heappush(open_set, (f_score, neighbor))
 
+def clear_path():
+    global start, end
+    start = None
+    end = None
+    for x in range(HEIGHT):
+        for y in range(WIDTH):
+            if grid[x][y]["bg"] == "yellow":
+                grid[x][y].config(bg="white")
+
+
+def export_grid():
+    with open("grid.txt", "w") as f:
+        for x in range(HEIGHT):
+            for y in range(WIDTH):
+                if grid[x][y]["bg"] == "white":
+                    f.write("0")
+                else:
+                    f.write("1")
+            f.write("\n")
+
+def import_grid():
+    global start, end
+    with open("grid.txt", "r") as f:
+        for x in range(HEIGHT):
+            line = f.readline()
+            for y in range(WIDTH):
+                if line[y] == "0":
+                    grid[x][y].config(bg="white")
+                else:
+                    grid[x][y].config(bg="blue")
+    start = None
+    end = None
 
 root = tk.Tk()
 
@@ -90,16 +123,24 @@ start = None
 end = None
 selected_x, selected_y = 0, 0
 
-for x in range(20):
+
+for x in range(HEIGHT):
     row = []
-    for y in range(8):
+    for y in range(WIDTH):
         button = tk.Button(root, text=f"{x},{y}", bg="white", command=lambda x=x, y=y: on_cell_click(x, y))
         button.grid(row=x, column=y, sticky="nsew")
         row.append(button)
     grid.append(row)
 
-tk.Button(root, text="Set Start", command=set_start).grid(row=20, column=0)
-tk.Button(root, text="Set End", command=set_end).grid(row=20, column=1)
-tk.Button(root, text="Find Path", command=find_path).grid(row=20, column=2)
+tk.Button(root, text="Set Start", command=set_start).grid(row=HEIGHT, column=0)
+tk.Button(root, text="Set End", command=set_end).grid(row=HEIGHT, column=1)
+tk.Button(root, text="Find Path", command=find_path).grid(row=HEIGHT, column=2)
+tk.Button(root, text="Clear Path", command=clear_path).grid(row=HEIGHT, column=3)
+tk.Button(root, text="Export Grid", command=export_grid).grid(row=HEIGHT, column=4)
+tk.Button(root, text="Import Grid", command=import_grid).grid(row=HEIGHT, column=5)
+
+# exit
+tk.Button(root, text="Exit", command=root.destroy).grid(row=HEIGHT, column=6)
+
 
 root.mainloop()
