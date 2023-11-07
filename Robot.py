@@ -146,6 +146,8 @@ class RobotCommand:
         pass # TODO: Implement this
 
 
+
+
 class Robot:
     def __init__(self,host:str="192.168.2.1"):
         self.host = host
@@ -208,6 +210,10 @@ class Robot:
         Executes a single command on the robot
         """
         print(command)
+        self._send(str(command))
+        if sleep:
+            time.sleep(command.calculate_sleep_time())
+
 
 
     def chain_commands(self, commands:list[RobotCommand]):
