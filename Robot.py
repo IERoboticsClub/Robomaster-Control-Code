@@ -1,9 +1,13 @@
 import sys
 import socket
 import time
+from enum import Enum
 
 
 class Arm:
+    """
+    I DID NOT WRITE THIS CLASS - CHAT GPT DID
+    """
     def __init__(self, robot):
         """
         Initializes a new instance of the Arm class.
@@ -72,14 +76,82 @@ class Arm:
         self.robot._send("robotic_gripper status ?")
 
 
+ROBOT = {
+    "chassis": {
+        "move": {
+            "x": float,
+            "y": float,
+            "z": float
+        },
+    },
+    "robotic_arm": {
+        "move": {
+            "x": float,
+            "y": float
+        },
+        "moveto": {
+            "x": float,
+            "y": float
+        },
+        "recenter": None,
+        "stop": None
+    },
+    "robotic_gripper": {
+        "open": int,
+        "close": int,
+        "status": None
+    }
+}
+
+class RobotComponents(Enum):
+    CHASSIS = "chassis"
+    ARM = "robotic_arm"
+    GRIPPER = "robotic_gripper"
+
+class RobotCommands(Enum):
+    MOVE = "move"
+    MOVE_TO = "moveto"
+    RECENTER = "recenter"
+    STOP = "stop"
+    OPEN = "open"
+    CLOSE = "close"
+    STATUS = "status"
+
+
+class RobotCommand:
+    def __init__(self, component:RobotComponents, command:RobotCommands, args:dict):
+        self.component = component
+        self.command = command
+        self.args = args
+
+    def __process_args(self):
+        """
+        Processes the args dict into a string for the command
+        """
+        structure = ROBOT[self.component.value][self.command.value]
+        argsString = ""
+        for key in structure.keys():
+            if key in self.args.keys():
+                argsString += f"{key} {self.args[key]} "
+        return argsString
+
+
+    def __str__(self):
+        return f"{self.component.value} {self.command.value} {self.__process_args().strip()};"
+
+    def calculate_sleep_time(self):
+        """
+        Calculates the time to sleep for the command
+        """
+        pass # TODO: Implement this
 
 
 class Robot:
-    def __init__(self,host="192.168.2.1"):
+    def __init__(self,host:str="192.168.2.1"):
         self.host = host
-        self.VX = 1
-        self.VY = 1
-        self.VZ = 100
+        self.VX = 1.0
+        self.VY = 1.0
+        self.VZ = 100.0
         self.arm = Arm(self)
         port = 40923
         self.port = port
@@ -96,17 +168,19 @@ class Robot:
 
 
 
-    def set_speed(self, x, y, z):
+    def set_speed(self, x:float=1.0, y:float=1.0, z:float=100.0) -> str:
         self.VX = x
         self.VY = y
         self.VZ = z
         self.s.send(f"speed x {x} y {y} z {z}".encode('utf-8'))
+        res = self.s.recv(1024)
+        return res.decode('utf-8')
 
-    def time_to_sleep(self, x: float, y:float, z:float):
+    def time_to_sleep(self, x: float=0.0, y: float=0.0, z: float=0.0) -> float:
         """
         calculates the number of seconds for the command to run and sleeps
         """
-        velocity = 0
+        velocity = 0.0
         x = abs(x)
         y = abs(y)
         z = abs(z)
@@ -129,19 +203,13 @@ class Robot:
         print(out.decode('utf-8'))
 
 
-
-    def move(self, x:float=0, y:float=0, z:float=0):
+    def execute_command(self, command:RobotCommand, sleep:bool=True):
         """
-        This function moves the robot in the x, y, and z directions
-        Args:
-            x (float): distance to move in the x direction
-            y (float): distance to move in the y direction
-            z (float): distance to move in the z direction
+        Executes a single command on the robot
         """
-        print(x,y,z)
-        command = f"chassis move x {x} y {y} z {z}"
-        self._send(command)
-        time.sleep(self.time_to_sleep(x, y, z))
+        print(command)
 
-    def move_forward(self, distance:float):
-        self.move(x=distance)
+
+    def chain_commands(self, commands:list[RobotCommand]):
+        for command in commands:
+            self.execute_command(command)
