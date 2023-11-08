@@ -65,9 +65,7 @@ def process_natural_language(sentence):
     robot_command = RobotCommand(component, command_enum, args)
     return robot_command
 
-sentence = "Hey I would like to move the chassis forward by 0.1 meters and to the right by 0.1 meters"
-command = process_natural_language(sentence)
-print(command)
-
-# Send a command to the robot
-# use __str__ to get the command string # returns <Robot.RobotCommand object at 0x7faa8ffb0dd0>
+while True:
+    sentence = input("Tell me what you want the car to do: ")
+    command = process_natural_language(sentence)
+    print(command)

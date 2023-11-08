@@ -119,7 +119,18 @@ class RobotCommands(Enum):
 
 
 class RobotCommand:
-    def __init__(self, component:RobotComponents, command:RobotCommands, args:dict):
+    def __init__(self, component:RobotComponents, command:RobotCommands, args:dict={}):
+        """
+        Initializes a new instance of the RobotCommand class.
+
+        :param component: The component to which the command should be sent.
+        :param command: The command to send to the component.
+        :param args: A dictionary of arguments to send with the command. (optional)
+
+        Example usage:
+        move_command = RobotCommand(RobotComponents.ARM, RobotCommands.MOVE, {"x": 0.1})
+
+        """
         self.component = component
         self.command = command
         self.args = args
@@ -128,6 +139,8 @@ class RobotCommand:
         """
         Processes the args dict into a string for the command
         """
+        if self.args == {}:
+            return ""
         structure = ROBOT[self.component.value][self.command.value]
         argsString = ""
         for key in structure.keys():
@@ -137,7 +150,9 @@ class RobotCommand:
 
 
     def __str__(self):
-        return f"{self.component.value} {self.command.value} {self.__process_args().strip()};"
+        command = f"{self.component.value} {self.command.value} {self.__process_args().strip()}"
+        return command.strip() + ";"
+
 
     def calculate_sleep_time(self):
         """
