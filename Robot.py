@@ -173,7 +173,10 @@ class RobotCommand:
                 y = self.args["y"] if "y" in self.args.keys() else 0.0
                 time_x = abs(x/self.VX)
                 time_y = abs(y/self.VY)
-                time_to_sleep = max(time_x, time_y)
+                time_to_sleep = max(time_x, time_y) * 1.5
+                if 'z' in self.args.keys() and self.args['z'] != 0:
+                    time_to_sleep = self.args['z'] / self.VZ
+        print(time_to_sleep)
         return time_to_sleep
 
 
@@ -185,6 +188,7 @@ class Robot:
         self.host = host
         self.arm = Arm(self)
         self.port = 40923
+        self.connect()
 
     def connect(self, host: str = None, port: int = None) -> bool:
         """
@@ -200,6 +204,8 @@ class Robot:
             print("Connecting...")
             s.connect(address)
             s.send("command;".encode('utf-8'))
+            out = s.recv(1024)
+            print(out.decode('utf-8'))
             print("Connected!")
             self.s = s
             return True
@@ -226,14 +232,33 @@ class Robot:
         out = self.s.recv(1024)
         print(out.decode('utf-8'))
 
+    def __is_moving(self) -> bool:
+        """
+        Tells use if the chassis is moving
+        """
+        self.s.send("chassis status ?;".encode('utf-8'))
+        out = self.s.recv(1024).decode('utf-8')
+        return int(out.split(" ")[0]) == 0
+
+
+
     def execute_command(self, command: RobotCommand, sleep: bool = True):
         """
         Executes a single command on the robot
         """
         print(command)
         self._send(str(command))
-        if sleep:
-            time.sleep(command.calculate_sleep_time())
+        time.sleep(1)
+        status = True # have to set to true, sometimes will overlap with non movement
+        while status:
+            # so we check if the thing is moving
+            # this means command is not yet done
+            status = self.__is_moving() # I think this only works for things like chassis
+            # to get around this we can pass the command to the is_moving
+            # then create separate logic for other parts
+            print("moving")
+
+        print("Done")
 
     def chain_commands(self, commands: list[RobotCommand]):
         """
