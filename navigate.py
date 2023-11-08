@@ -5,8 +5,8 @@ User can select starting and ending cells, and then click a button to find the s
 import tkinter as tk
 from queue import Queue
 
-HEIGHT = 20
-WIDTH = 8
+HEIGHT = 33
+WIDTH = 5
 
 def on_cell_click(x, y):
     if grid[x][y]["bg"] == "white":
@@ -131,6 +131,13 @@ for x in range(HEIGHT):
         button.grid(row=x, column=y, sticky="nsew")
         row.append(button)
     grid.append(row)
+
+# make scrollable grid
+for x in range(HEIGHT):
+    root.grid_rowconfigure(x, weight=1)
+for y in range(WIDTH):
+    root.grid_columnconfigure(y, weight=1)
+
 
 tk.Button(root, text="Set Start", command=set_start).grid(row=HEIGHT, column=0)
 tk.Button(root, text="Set End", command=set_end).grid(row=HEIGHT, column=1)

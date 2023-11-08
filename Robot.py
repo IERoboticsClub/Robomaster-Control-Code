@@ -1,4 +1,6 @@
-import sys
+"""
+Using this file, you can control the robot.
+"""
 import socket
 import time
 from enum import Enum
@@ -119,6 +121,9 @@ class RobotCommands(Enum):
 
 
 class RobotCommand:
+    """
+    With this class, you can create a command to send to the robot.
+    """
     def __init__(self, component:RobotComponents, command:RobotCommands, args:dict={}):
         """
         Initializes a new instance of the RobotCommand class.
@@ -134,6 +139,9 @@ class RobotCommand:
         self.component = component
         self.command = command
         self.args = args
+        self.VX = 1.0
+        self.VY = 1.0
+        self.VZ = 100.0
 
     def __process_args(self):
         """
@@ -148,79 +156,77 @@ class RobotCommand:
                 argsString += f"{key} {self.args[key]} "
         return argsString
 
-
     def __str__(self):
         command = f"{self.component.value} {self.command.value} {self.__process_args().strip()}"
         return command.strip() + ";"
-
 
     def calculate_sleep_time(self):
         """
         Calculates the time to sleep for the command
         """
-        pass # TODO: Implement this
-
-
+        time_to_sleep = 0.0
+        # kinematics
+        if self.component == RobotComponents.CHASSIS:
+            if self.command == RobotCommands.MOVE:
+                # compute vector x,y
+                x = self.args["x"] if "x" in self.args.keys() else 0.0
+                y = self.args["y"] if "y" in self.args.keys() else 0.0
+                time_x = abs(x/self.VX)
+                time_y = abs(y/self.VY)
+                time_to_sleep = max(time_x, time_y)
+        return time_to_sleep
 
 
 class Robot:
-    def __init__(self,host:str="192.168.2.1"):
+    """
+    A class for controlling the robot.
+    """
+    def __init__(self, host: str = "192.168.2.1"):
         self.host = host
-        self.VX = 1.0
-        self.VY = 1.0
-        self.VZ = 100.0
         self.arm = Arm(self)
-        port = 40923
-        self.port = port
+        self.port = 40923
+
+    def connect(self, host: str = None, port: int = None) -> bool:
+        """
+        Connects to the robot
+        """
+        if host is None:
+            host = self.host
+        if port is None:
+            port = self.port
         address = (host, int(port))
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("Connecting...")
-        s.connect(address)
-        s.send("command;".encode('utf-8'))
-        res = s.recv(1024)
-        print(res.decode('utf-8'))
-        time.sleep(2)
-        print("Connected!")
-        self.s = s
+        try:
+            print("Connecting...")
+            s.connect(address)
+            s.send("command;".encode('utf-8'))
+            print("Connected!")
+            self.s = s
+            return True
+        except Exception as e:
+            print(e)
+            return False
 
-
-
-    def set_speed(self, x:float=1.0, y:float=1.0, z:float=100.0) -> str:
-        self.VX = x
-        self.VY = y
-        self.VZ = z
+    def set_speed(self, x: float = 1.0, y: float =1.0, z: float = 100.0) -> str:
+        """
+        Sets the speed of the robot
+        """
+        self.v_x = x
+        self.v_y = y
+        self.v_z = z
         self.s.send(f"speed x {x} y {y} z {z}".encode('utf-8'))
         res = self.s.recv(1024)
         return res.decode('utf-8')
 
-    def time_to_sleep(self, x: float=0.0, y: float=0.0, z: float=0.0) -> float:
-        """
-        calculates the number of seconds for the command to run and sleeps
-        """
-        velocity = 0.0
-        x = abs(x)
-        y = abs(y)
-        z = abs(z)
-        if x != 0:
-            velocity = self.VX
-        elif y != 0:
-            velocity = self.VY
-        elif z != 0:
-            velocity = self.VZ
-        time_to_sleep = max(x, y, z) / velocity
-        return time_to_sleep
-
-
-    def _send(self, cmd:str):
-        sm = "" if ";" in cmd else ";"
-        cmd += sm
+    def _send(self, cmd: str):
+        _sm = "" if ";" in cmd else ";"
+        cmd += _sm
         print(cmd)
         self.s.send(cmd.encode('utf-8'))
         out = self.s.recv(1024)
         print(out.decode('utf-8'))
 
-
-    def execute_command(self, command:RobotCommand, sleep:bool=True):
+    def execute_command(self, command: RobotCommand, sleep: bool = True):
         """
         Executes a single command on the robot
         """
@@ -229,8 +235,9 @@ class Robot:
         if sleep:
             time.sleep(command.calculate_sleep_time())
 
-
-
-    def chain_commands(self, commands:list[RobotCommand]):
+    def chain_commands(self, commands: list[RobotCommand]):
+        """
+        Chains a list of commands together
+        """
         for command in commands:
             self.execute_command(command)
