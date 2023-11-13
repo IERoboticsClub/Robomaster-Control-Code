@@ -47,5 +47,42 @@ Currently available commands are:
 - `STATUS`
 
 
+```mermaid
+erDiagram
+    Robot ||--o{ RobotCommand : "sends"
+    RobotCommand }|--|{ RobotComponents : "uses"
+    RobotCommand }|--|{ RobotCommands : "uses"
+
+    Robot {
+        string host
+        int port
+        socket s
+    }
+
+    RobotCommand {
+        RobotComponents component
+        RobotCommands command
+        dict args
+    }
+
+    RobotComponents {
+        string CHASSIS
+        string ARM
+        string GRIPPER
+    }
+
+    RobotCommands {
+        string MOVE
+        string MOVE_TO
+        string RECENTER
+        string STOP
+        string OPEN
+        string CLOSE
+        string STATUS
+    }
+
+```
+
+
 ### Arguments
 The arguments dictionary is a collection of key-value pairs that are used to specify the command. The arguments dictionary is different for each command. For example, the `MOVE` command takes `x,y,z` coordinates as arguments, while the `RECENTER` command takes no arguments.
